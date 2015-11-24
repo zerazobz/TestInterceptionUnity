@@ -1,4 +1,5 @@
-﻿Imports Microsoft.Practices.Unity.InterceptionExtension
+﻿Imports System.Reflection
+Imports Microsoft.Practices.Unity.InterceptionExtension
 
 Public Class LoggingInterceptor
     Implements IInterceptionBehavior
@@ -14,8 +15,20 @@ Public Class LoggingInterceptor
     End Function
 
     Public Function Invoke(input As IMethodInvocation, getNext As GetNextInterceptionBehaviorDelegate) As IMethodReturn Implements IInterceptionBehavior.Invoke
-        Dim result As IMethodReturn = getNext()(input, getNext)
-        Console.WriteLine("Intercepted")
-        Return result
+        Dim methodResult As IMethodReturn = getNext()(input, getNext)
+        If Not methodResult.Exception Is Nothing Then
+            If input.MethodBase.MemberType = MemberTypes.Method Then
+                Dim method As MethodInfo = CType(input.MethodBase, MethodInfo)
+                If method.ReturnType = GetType(System.Void) Then
+                    Return Nothing
+                Else
+                    Dim instance = Activator.CreateInstance(methodResult.ReturnValue)
+                    methodResult.ReturnValue = instance
+                    'Return
+                End If
+            End If
+        End If
+        Console.WriteLine("Everything are Intercepted")
+        Return methodResult
     End Function
 End Class
